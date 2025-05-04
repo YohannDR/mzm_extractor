@@ -6,36 +6,29 @@ using System.Threading;
 
 namespace MzmExtractor
 {
-    class Program
+    internal static class Program
     {
-        const string romPath = "mzm_us_baserom.gba", databasePath = "database.txt", dataPath = "data";
+        const string databasePath = "database.txt", dataPath = "data";
 
-        static void Main(string[] args)
+        private static string romPath;
+
+        private static void Main(string[] args)
         {
+            if (args.Length != 1)
+            {
+                Console.Error.WriteLine("Invalid arguments.");
+                Environment.Exit(1);
+            }
+
+            romPath = args[0];
             CheckFileExists(romPath);
             CheckFileExists(databasePath);
-
-            Thread deleteOldFilesThread = null;
-
-            if (Directory.Exists(dataPath))
-            {
-                deleteOldFilesThread = new(
-                    () =>
-                    {
-                        Console.WriteLine("Deleting old files...");
-                        Directory.Delete(dataPath, true);
-                    }
-                );
-                deleteOldFilesThread.Start();
-            }
 
             int parallelThreads = Environment.ProcessorCount;
             Console.WriteLine($"Using {parallelThreads} parallel threads.");
 
             string[] database = File.ReadAllLines(databasePath);
             database = database.Where(line => !(line == string.Empty || (line[0] is '\n' or '#'))).ToArray();
-
-            deleteOldFilesThread?.Join();
 
             Thread[] threads = new Thread[parallelThreads];
             int dataBlockLength = database.Length / parallelThreads;
@@ -47,7 +40,7 @@ namespace MzmExtractor
                 dataBlock = new string[dataBlockLength];
                 Array.Copy(database, dataBlockLength * i, dataBlock, 0, dataBlockLength);
 
-                Thread t = threads[i] = new Thread(ExtractData);
+                Thread t = threads[i] = new(ExtractData);
                 Console.WriteLine($"Starting thread #{i}.");
                 t.Start(dataBlock);
             }
@@ -62,7 +55,7 @@ namespace MzmExtractor
                 t.Join();
         }
 
-        static void CheckFileExists(string path)
+        private static void CheckFileExists(string path)
         {
             if (!File.Exists(path))
             {
@@ -71,7 +64,7 @@ namespace MzmExtractor
             }
         }
 
-        static void ExtractData(object dataBlock)
+        private static void ExtractData(object dataBlock)
         {
             using FileStream romFileStream = new(romPath, FileMode.Open, FileAccess.Read);
             using BinaryReader rom = new(romFileStream);
