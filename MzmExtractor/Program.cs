@@ -8,19 +8,22 @@ namespace MzmExtractor
 {
     internal static class Program
     {
-        const string databasePath = "database.txt", dataPath = "data";
+        const string dataPath = "data";
 
         private static string romPath;
+        private static string databasePath;
 
         private static void Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 2)
             {
                 Console.Error.WriteLine("Invalid arguments.");
+                Console.WriteLine("Usage: extractor <rom> <database file>");
                 Environment.Exit(1);
             }
 
             romPath = args[0];
+            databasePath = args[1];
             CheckFileExists(romPath);
             CheckFileExists(databasePath);
 
